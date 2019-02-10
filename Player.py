@@ -10,9 +10,9 @@ class AIPlayer:
         self.player_string = 'Player {}:ai'.format(player_number)
         self.opposite = (2 if (player_number == 1) else (1))
 
-
 #below 2 functions are used by alphabeta and expectimax
     def update_board(self, board, move, player_num):
+        print(board)
         if 0 in board[:,move]:
             update_row = -1
             for row in range(1, board.shape[0]):
@@ -28,7 +28,7 @@ class AIPlayer:
                     break
         else:
             #can never come here
-            err = 'Invalid move by player {}. Column {}'.format(player_num, move)
+            err = 'in AI game Invalid move by player {}. Column {}'.format(player_num, move)
             raise Exception(err)
 
     #TODO: move this function to a common helper class
@@ -68,13 +68,14 @@ class AIPlayer:
 
 
         # is terminal state game_completed? 
-    def terminal_test(self, board): 
-        return self.game_completed(board, self.player_number)
+    def terminal_test(self, board, player_number): 
+        return self.game_completed(board, player_number)
 
 
     def utility(self, board):
         #https://stackoverflow.com/questions/10985000/how-should-i-design-a-good-evaluation-function-for-connect-4
-        return np.random.randint(low=0, high=88, size=1)
+        util = random.randint(1,88)
+        return util
 
     def get_alpha_beta_move(self, board):
         print(board) #check input
@@ -100,9 +101,10 @@ class AIPlayer:
  
         # get best alpha(max) given all leafs choose min
         def max_value(self, depth, board, alpha, beta):
-            print("Depth=",depth," alpha= ",alpha," beta= ",beta) #debug
-            if (self.terminal_test(board) or (depth <= 0)):
-                return self.utility(board)
+            print("Max at Depth=",depth," alpha= ",alpha," beta= ",beta) #debug
+            mockboard = copy.deepcopy(board)
+            if (self.terminal_test(mockboard, self.player_number) or (depth <= 0)):
+                return self.utility(mockboard)
             value = float("-inf")
             #valid columns are the actions
             valid_cols = []
@@ -110,19 +112,21 @@ class AIPlayer:
                 if 0 in board[:,col]:
                     valid_cols.append(col)
 
-            for col in range(len(valid_cols)):
+            for col in valid_cols:
                 # Choose the max of 7 or less(valid) actions
-                mockboard = copy.deepcopy(board)
                 self.update_board(mockboard, col, self.player_number)
                 value = max(value, min_value(self, depth-1, mockboard, alpha, beta))
                 if (value >= beta):
-                    alpha = max(alpha, value)
+                    return value
+                alpha = max(alpha, value)
             return value
 
         # get best beta(min) given all leafs choose max
         def min_value(self, depth, board, alpha, beta):
-            if (self.terminal_test(board) or (depth <= 0)):
-                return self.utility(board)
+            mockboard = copy.deepcopy(board)
+            print("Min at Depth=",depth," alpha= ",alpha," beta= ",beta) #debug
+            if (self.terminal_test(mockboard, self.opposite) or (depth <= 0)):
+                return self.utility(mockboard)
             value = float("+inf")
             #valid columns are the actions
             valid_cols = []
@@ -130,15 +134,16 @@ class AIPlayer:
                 if 0 in board[:,col]:
                     valid_cols.append(col)
 
-            for col in range(len(valid_cols)):
+            for col in valid_cols:
                 # Choose the max of 7 or less(valid) actions
-                mockboard = copy.deepcopy(board)
-                self.update_board(mockboard, col, self.player_number)
+                self.update_board(mockboard, col, self.opposite)
                 value = min(value, max_value(self, depth-1, mockboard, alpha, beta))
+                if (value <= alpha):
+                    return value
             return value
 
         #alpha beta algo that uses min-max
-        depth = 7 
+        depth = 7
         value = max_value(self, depth, board, float("-inf"), float("+inf"))
         print("returned value ",value)
         if (value == 0):
