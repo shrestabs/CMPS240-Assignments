@@ -57,6 +57,7 @@ class Game:
                     recv_end, send_end = mp.Pipe(False)
                     p = mp.Process(target=turn_worker, args=(self.board, send_end, p_func))
                     p.start()
+                    # block main thread till response (or) ai_turn_limit timeout 
                     if p.join(self.ai_turn_limit) is None and p.is_alive():
                         p.terminate()
                         raise Exception('Player Exceeded time limit')
@@ -66,9 +67,12 @@ class Game:
                     print(e)
                     raise Exception('Game Over')
 
+                print(self.board)
                 move = recv_end.recv()
+                print(self.board)
             else:
                 move = current_player.get_move(self.board)
+                
 
             if move is not None:
                 self.update_board(int(move), current_player.player_number)
@@ -156,7 +160,7 @@ def main(player1, player2, time):
 
     Game(make_player(player1, 1), make_player(player2, 2), time)
 
-
+''' ---------Dead code------------
 def play_game(player1, player2):
     """
     Creates a new game GUI and plays a game using the two players passed in.
@@ -169,7 +173,7 @@ def play_game(player1, player2):
     None
     """
     board = np.zeros([6,7])
-
+---------Dead code------------'''
 
 
 if __name__=='__main__':
