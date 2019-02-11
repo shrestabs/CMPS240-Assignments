@@ -12,7 +12,7 @@ class AIPlayer:
 
 #below 2 functions are used by alphabeta and expectimax
     def update_board(self, board, move, player_num):
-        print(board)
+        #print(board)
         if 0 in board[:,move]:
             update_row = -1
             for row in range(1, board.shape[0]):
@@ -71,10 +71,50 @@ class AIPlayer:
     def terminal_test(self, board, player_number): 
         return self.game_completed(board, player_number)
 
+    #sum of all possible wins available at a particular board position
+    def evaluation_function(self, board):
+        """
+        Given the current stat of the board, return the scalar value that 
+        represents the evaluation function for the current player
+       
+        INPUTS:
+        board - a numpy array containing the state of the board using the
+                following encoding:
+                - the board maintains its same two dimensions
+                    - row 0 is the top of the board and so is
+                      the last row filled
+                - spaces that are unoccupied are marked as 0
+                - spaces that are occupied by player 1 have a 1 in them
+                - spaces that are occupied by player 2 have a 2 in them
 
-    def utility(self, board):
-        #https://stackoverflow.com/questions/10985000/how-should-i-design-a-good-evaluation-function-for-connect-4
-        util = random.randint(1,88)
+        RETURNS:
+        The utility value for the current board
+        """
+        util = 0
+        for i in board[0]:
+            for j in board[i]:
+                #horizontal
+                if ((j+3) < 7):
+                    sum = 0
+                    for k in range(4):
+                        sum += board[i][j+k]
+                    if not sum:
+                        util += 1
+                #vertical
+                if ((i+3) < 6):
+                    sum = 0
+                    for k in range(4):
+                        sum += board[i+k][j]
+                    if not sum:
+                        util += 1
+                #diagonal
+                if (((j+3) < 7) and ((i+3) < 6)):
+                    sum = 0
+                    for k in range(4):
+                        sum += board[i+k][j+k]
+                    if not sum:
+                        util += 1
+        print("Util (i,j) = (",i,",",j,") is = ",util)
         return util
 
     def get_alpha_beta_move(self, board):
@@ -100,12 +140,13 @@ class AIPlayer:
         """
  
         # get best alpha(max) given all leafs choose min
-        def max_value(self, depth, board, alpha, beta):
+        def max_value(self, depth, board, alpha, beta, incol):
             print("Max at Depth=",depth," alpha= ",alpha," beta= ",beta) #debug
             mockboard = copy.deepcopy(board)
             if (self.terminal_test(mockboard, self.player_number) or (depth <= 0)):
-                return self.utility(mockboard)
+                return (self.evaluation_function(mockboard), incol)
             value = float("-inf")
+            retcol = incol
             #valid columns are the actions
             valid_cols = []
             for col in range(board.shape[1]):
@@ -115,19 +156,25 @@ class AIPlayer:
             for col in valid_cols:
                 # Choose the max of 7 or less(valid) actions
                 self.update_board(mockboard, col, self.player_number)
-                value = max(value, min_value(self, depth-1, mockboard, alpha, beta))
+                retvalue, colz =  min_value(self, depth-1, mockboard, alpha, beta, col)
+                print("returned ",retvalue, colz)
+                if (retvalue > value):
+                    value = retvalue
+                    retcol = colz
                 if (value >= beta):
-                    return value
+                    return value, col
                 alpha = max(alpha, value)
-            return value
+            return value, retcol
 
         # get best beta(min) given all leafs choose max
-        def min_value(self, depth, board, alpha, beta):
+        def min_value(self, depth, board, alpha, beta, incol):
             mockboard = copy.deepcopy(board)
             print("Min at Depth=",depth," alpha= ",alpha," beta= ",beta) #debug
             if (self.terminal_test(mockboard, self.opposite) or (depth <= 0)):
-                return self.utility(mockboard)
+                return (self.evaluation_function(mockboard), incol)
             value = float("+inf")
+            retcol = incol
+            retcol = -1
             #valid columns are the actions
             valid_cols = []
             for col in range(board.shape[1]):
@@ -137,18 +184,19 @@ class AIPlayer:
             for col in valid_cols:
                 # Choose the max of 7 or less(valid) actions
                 self.update_board(mockboard, col, self.opposite)
-                value = min(value, max_value(self, depth-1, mockboard, alpha, beta))
+                retvalue, colz = max_value(self, depth-1, mockboard, alpha, beta, col)
+                print("returned ",retvalue, colz)
+                if (retvalue < value):
+                    value = retvalue
+                    retcol = colz
                 if (value <= alpha):
-                    return value
-            return value
+                    return value, col
+            return value, retcol
 
         #alpha beta algo that uses min-max
-        depth = 7
-        value = max_value(self, depth, board, float("-inf"), float("+inf"))
-        print("returned value ",value)
-        if (value == 0):
-            move = 1
-        move = random.randint(0, 6) #had issues with numpy randomint. keep this
+        depth = 2
+        value, move = max_value(self, depth, board, float("-inf"), float("+inf"), -1)
+        print("returned value and move ",value," ",move)
         return move
 
     def get_expectimax_move(self, board):
@@ -172,32 +220,47 @@ class AIPlayer:
         RETURNS:
         The 0 based index of the column that represents the next move
         """
-        raise NotImplementedError('Whoops I don\'t know what to do')
+        def max_value(self,depth, board):
+            val = float("-inf")
+            valid_cols = []
+            for col in range(board.shape[1]):
+                if 0 in board[:,col]:
+                    valid_cols.append(col)
 
+            for col in valid_cols:
+                val = max(val, value(self, depth-1,"exp", board))
+            return val
 
+        def exp_value(self,depth, board):
+            val = 0
+            valid_cols = []
+            for col in range(board.shape[1]):
+                if 0 in board[:,col]:
+                    valid_cols.append(col)
 
+            for col in valid_cols:
+                p = 1/len(valid_cols)
+                print("prob is ", p)
+                val += p * value(self, depth-1,"max", board)
+            return val
 
-    def evaluation_function(self, board):
-        """
-        Given the current stat of the board, return the scalar value that 
-        represents the evaluation function for the current player
-       
-        INPUTS:
-        board - a numpy array containing the state of the board using the
-                following encoding:
-                - the board maintains its same two dimensions
-                    - row 0 is the top of the board and so is
-                      the last row filled
-                - spaces that are unoccupied are marked as 0
-                - spaces that are occupied by player 1 have a 1 in them
-                - spaces that are occupied by player 2 have a 2 in them
+        def value(self, depth, turn, board):
+            #print("Max at Depth=",depth)  #debug
+            mockboard = copy.deepcopy(board)
+            if (self.terminal_test(mockboard, self.player_number) or (depth <= 0)):
+                return self.evaluation_function(mockboard)
 
-        RETURNS:
-        The utility value for the current board
-        """
-       
-       
-        return 0
+            if (turn == "max"):
+                return max_value(self,depth, board)
+            else:
+                return exp_value(self,depth, board)
+
+        depth = 2
+        val = value(self, depth, "max", board)
+        if (val == 0):
+            move = 1
+        move = random.randint(0, 6) #had issues with numpy randomint. keep this
+        return move
 
 
 class RandomPlayer:
@@ -268,4 +331,3 @@ class HumanPlayer:
             move = int(input('Enter your move: '))
 
         return move
-

@@ -68,13 +68,7 @@ class Game:
                     raise Exception('Game Over')
 
                 #TODO:check if deep of shallow copy
-                print("-----------------------------")
-                print(self.board)
-                print("-----------------------------")
                 move = recv_end.recv()
-                print("-----------------------------")
-                print(self.board)
-                print("-----------------------------")
             else:
                 move = current_player.get_move(self.board)
                 
