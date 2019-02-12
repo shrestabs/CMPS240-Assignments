@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import random as random
-import copy #TODO: eval if u need this
+import copy
 
 class AIPlayer:
     def __init__(self, player_number):
@@ -9,29 +9,27 @@ class AIPlayer:
         self.type = 'ai'
         self.player_string = 'Player {}:ai'.format(player_number)
         self.opposite = (2 if (player_number == 1) else (1))
+        print("opposite number is ",self.opposite)
 
-#below 2 functions are used by alphabeta and expectimax
+    #Helper functions to update and check if game is complete
     def update_board(self, board, move, player_num):
-        #print(board)
-        if 0 in board[:,move]:
+        mockboard = copy.deepcopy(board)
+        if 0 in mockboard[:,move]:
             update_row = -1
-            for row in range(1, board.shape[0]):
+            for row in range(1, mockboard.shape[0]):
                 update_row = -1
-                if board[row, move] > 0 and board[row-1, move] == 0:
+                if mockboard[row, move] > 0 and mockboard[row-1, move] == 0:
                     update_row = row-1
-                elif row==board.shape[0]-1 and board[row, move] == 0:
+                elif row==mockboard.shape[0]-1 and mockboard[row, move] == 0:
                     update_row = row
-
                 if update_row >= 0:
-                    board[update_row, move] = player_num
-                    #self.c.itemconfig(self.gui_board[move][update_row], fill=self.colors[self.current_turn]) does not apply to 
+                    mockboard[update_row, move] = player_num
                     break
         else:
-            #can never come here
             err = 'in AI game Invalid move by player {}. Column {}'.format(player_num, move)
             raise Exception(err)
+        return mockboard
 
-    #TODO: move this function to a common helper class
     def game_completed(self, board, player_num):
         player_win_str = '{0}{0}{0}{0}'.format(player_num)
         to_str = lambda a: ''.join(a.astype(str))
@@ -66,13 +64,13 @@ class AIPlayer:
                 check_verticle(board) or
                 check_diagonal(board))
 
-
-        # is terminal state game_completed? 
+ 
     def terminal_test(self, board, player_number): 
         return self.game_completed(board, player_number)
 
     #sum of all possible wins available at a particular board position
     def evaluation_function(self, board):
+        wellness = 0
         """
         Given the current stat of the board, return the scalar value that 
         represents the evaluation function for the current player
@@ -90,35 +88,97 @@ class AIPlayer:
         RETURNS:
         The utility value for the current board
         """
-        util = 0
-        for i in board[0]:
-            for j in board[i]:
-                #horizontal
+        '''
+        Factors identfied for defense play:
+        1)Component My winning (+)(x1) (magnitude)(weight=negligible)
+        2)Component Opponent winning score (-)(x2)(magnitude)(weight=almost infinity)
+        3)Component Blocking/Attempting draw (Constant)(weight=very high)
+        '''
+        def scorecalculator(zeros, player_count, opponent_count):
+            score = 50
+            if(zeros == 4):
+                return score
+            if ((player_count == 0) or (opponent_count == 0)):
+                score = ( ((player_count/3) * 50) + ((opponent_count/3) * -10000) )
+            else:
+                if ((player_count + opponent_count) == 4):
+                    score = 20000
+                else:
+                    score = 10000
+            return score
+
+        for i in range(6):
+            for j in range(7):
+                #horizontal right
                 if ((j+3) < 7):
-                    sum = 0
+                    #collect stats
+                    statsdict = {0:0, 1:0, 2:0}
                     for k in range(4):
-                        sum += board[i][j+k]
-                    if not sum:
-                        util += 1
-                #vertical
+                        #print("(i,j,k) :",i,j,k)
+                        statsdict[board[i][j+k]] += 1
+                        k = k + 1
+                    wellness += scorecalculator(statsdict[0], statsdict[1], statsdict[2])
+                #horizontal left
+                if ((j-3) >= 0):
+                    #collect stats
+                    statsdict = {0:0, 1:0, 2:0}
+                    for k in range(4):
+                        statsdict[board[i][j-k]] += 1
+                        k = k + 1
+                    wellness += scorecalculator(statsdict[0], statsdict[1], statsdict[2])
+                #vertical up
                 if ((i+3) < 6):
-                    sum = 0
+                     #collect stats
+                    statsdict = {0:0, 1:0, 2:0}
                     for k in range(4):
-                        sum += board[i+k][j]
-                    if not sum:
-                        util += 1
-                #diagonal
+                        statsdict[board[i+k][j]] += 1
+                        k = k + 1
+                    wellness += scorecalculator(statsdict[0], statsdict[1], statsdict[2])
+                #vertical bottom
+                if ((i-3) >=0):
+                     #collect stats
+                    statsdict = {0:0, 1:0, 2:0}
+                    for k in range(4):
+                        statsdict[board[i-k][j]] += 1
+                        k = k + 1
+                    wellness += scorecalculator(statsdict[0], statsdict[1], statsdict[2])
+                #diagonal right up
                 if (((j+3) < 7) and ((i+3) < 6)):
-                    sum = 0
+                    #collect stats
+                    statsdict = {0:0, 1:0, 2:0}
                     for k in range(4):
-                        sum += board[i+k][j+k]
-                    if not sum:
-                        util += 1
-        print("Util (i,j) = (",i,",",j,") is = ",util)
-        return util
+                        statsdict[board[i+k][j+k]] += 1
+                        k = k + 1
+                    wellness += scorecalculator(statsdict[0], statsdict[1], statsdict[2])
+                #diagonal left down
+                if (((j-3) >= 0) and ((i-3) >= 0)):
+                    #collect stats
+                    statsdict = {0:0, 1:0, 2:0}
+                    for k in range(4):
+                        statsdict[board[i-k][j-k]] += 1
+                        k = k + 1
+                    wellness += scorecalculator(statsdict[0], statsdict[1], statsdict[2])
+                #diagonal left up
+                if (((j-3) >= 0) and ((i+3) < 6)):
+                    #collect stats
+                    statsdict = {0:0, 1:0, 2:0}
+                    for k in range(4):
+                        statsdict[board[i+k][j-k]] += 1
+                        k = k + 1
+                    wellness += scorecalculator(statsdict[0], statsdict[1], statsdict[2])
+                #diagonal right down
+                if (((j+3) < 7) and ((i-3) >= 0)):
+                    #collect stats
+                    statsdict = {0:0, 1:0, 2:0}
+                    for k in range(4):
+                        statsdict[board[i-k][j+k]] += 1
+                        k = k + 1
+                    wellness += scorecalculator(statsdict[0], statsdict[1], statsdict[2])
+        return wellness
+
+
 
     def get_alpha_beta_move(self, board):
-        print(board) #check input
         """
         Given the current state of the board, return the next move based on
         the alpha-beta pruning algorithm
@@ -139,15 +199,12 @@ class AIPlayer:
         The 0 based index of the column that represents the next move
         """
  
-        # get best alpha(max) given all leafs choose min
         def max_value(self, depth, board, alpha, beta, incol):
-            print("Max at Depth=",depth," alpha= ",alpha," beta= ",beta) #debug
-            mockboard = copy.deepcopy(board)
-            if (self.terminal_test(mockboard, self.player_number) or (depth <= 0)):
-                return (self.evaluation_function(mockboard), incol)
+            if (self.terminal_test(board, self.player_number) or (depth <= 0)):
+                return (self.evaluation_function(board), incol)
             value = float("-inf")
             retcol = incol
-            #valid columns are the actions
+            #valid columns or actions
             valid_cols = []
             for col in range(board.shape[1]):
                 if 0 in board[:,col]:
@@ -155,9 +212,9 @@ class AIPlayer:
 
             for col in valid_cols:
                 # Choose the max of 7 or less(valid) actions
-                self.update_board(mockboard, col, self.player_number)
+                mockboard = self.update_board(board, col, self.player_number)
                 retvalue, colz =  min_value(self, depth-1, mockboard, alpha, beta, col)
-                print("returned ",retvalue, colz)
+                print("max-min_value returned ",retvalue, colz)
                 if (retvalue > value):
                     value = retvalue
                     retcol = colz
@@ -168,13 +225,10 @@ class AIPlayer:
 
         # get best beta(min) given all leafs choose max
         def min_value(self, depth, board, alpha, beta, incol):
-            mockboard = copy.deepcopy(board)
-            print("Min at Depth=",depth," alpha= ",alpha," beta= ",beta) #debug
-            if (self.terminal_test(mockboard, self.opposite) or (depth <= 0)):
-                return (self.evaluation_function(mockboard), incol)
+            if (self.terminal_test(board, self.opposite) or (depth <= 0)):
+                return (self.evaluation_function(board), incol)
             value = float("+inf")
             retcol = incol
-            retcol = -1
             #valid columns are the actions
             valid_cols = []
             for col in range(board.shape[1]):
@@ -183,18 +237,19 @@ class AIPlayer:
 
             for col in valid_cols:
                 # Choose the max of 7 or less(valid) actions
-                self.update_board(mockboard, col, self.opposite)
+                mockboard = self.update_board(board, col, self.opposite)
                 retvalue, colz = max_value(self, depth-1, mockboard, alpha, beta, col)
-                print("returned ",retvalue, colz)
+                print("min max_val returned ",retvalue, colz)
                 if (retvalue < value):
                     value = retvalue
                     retcol = colz
                 if (value <= alpha):
                     return value, col
+                beta = min(beta, value)
             return value, retcol
 
         #alpha beta algo that uses min-max
-        depth = 2
+        depth = 4
         value, move = max_value(self, depth, board, float("-inf"), float("+inf"), -1)
         print("returned value and move ",value," ",move)
         return move
@@ -220,7 +275,7 @@ class AIPlayer:
         RETURNS:
         The 0 based index of the column that represents the next move
         """
-        def max_value(self,depth, board):
+        def max_value(self,depth, board, col):
             val = float("-inf")
             valid_cols = []
             for col in range(board.shape[1]):
@@ -228,10 +283,13 @@ class AIPlayer:
                     valid_cols.append(col)
 
             for col in valid_cols:
-                val = max(val, value(self, depth-1,"exp", board))
-            return val
+                retval, colz = value(self, depth-1,"exp", board,col)
+                if (retval > val):
+                    val = retval
+                    col = colz
+            return val,col
 
-        def exp_value(self,depth, board):
+        def exp_value(self,depth, board, col):
             val = 0
             valid_cols = []
             for col in range(board.shape[1]):
@@ -240,26 +298,23 @@ class AIPlayer:
 
             for col in valid_cols:
                 p = 1/len(valid_cols)
-                print("prob is ", p)
-                val += p * value(self, depth-1,"max", board)
-            return val
+                retval, colz = value(self, depth-1,"max", board, col)
+                val += p * retval
+            return val,col
 
-        def value(self, depth, turn, board):
-            #print("Max at Depth=",depth)  #debug
+        def value(self, depth, turn, board, col):
+            print("Max at Depth=",depth)  #debug
             mockboard = copy.deepcopy(board)
             if (self.terminal_test(mockboard, self.player_number) or (depth <= 0)):
-                return self.evaluation_function(mockboard)
+                return (self.evaluation_function(mockboard), col)
 
             if (turn == "max"):
-                return max_value(self,depth, board)
+                return max_value(self,depth, board, col)
             else:
-                return exp_value(self,depth, board)
+                return exp_value(self,depth, board, col)
 
-        depth = 2
-        val = value(self, depth, "max", board)
-        if (val == 0):
-            move = 1
-        move = random.randint(0, 6) #had issues with numpy randomint. keep this
+        depth = 3
+        val, move = value(self, depth, "max", board, -1)
         return move
 
 
