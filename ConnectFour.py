@@ -182,7 +182,7 @@ if __name__=='__main__':
     parser.add_argument('player2', choices=player_types)
     parser.add_argument('--time',
                         type=int,
-                        default=60,
+                        default=5,
                         help='Time to wait for a move in seconds (int)')
     args = parser.parse_args()
 
