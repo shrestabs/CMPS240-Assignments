@@ -93,6 +93,18 @@ class AIPlayer:
         1)Component My winning (+)(x1) (magnitude)(weight=negligible)
         2)Component Opponent winning score (-)(x2)(magnitude)(weight=almost infinity)
         3)Component Blocking/Attempting draw (Constant)(weight=very high)
+
+        scorecalculator description:
+        Given the current board state returns the human input for next move
+
+        INPUTS:
+        zeros - Number of zeros in a connect4 line
+        player_count - Number of 1s (or) Number of boxes held by player
+        opponent_count - Number of 2s (or) Number of boxes held by opponent
+
+        RETURNS:
+        Score of that particular line for the box.
+        
         '''
         def scorecalculator(zeros, player_count, opponent_count):
             score = 50
@@ -214,7 +226,7 @@ class AIPlayer:
                 # Choose the max of 7 or less(valid) actions
                 mockboard = self.update_board(board, col, self.player_number)
                 retvalue, colz =  min_value(self, depth-1, mockboard, alpha, beta, col)
-                print("max-min_value returned ",retvalue, colz)
+                #print("max-min_value returned ",retvalue, colz)
                 if (retvalue > value):
                     value = retvalue
                     retcol = colz
@@ -239,7 +251,7 @@ class AIPlayer:
                 # Choose the max of 7 or less(valid) actions
                 mockboard = self.update_board(board, col, self.opposite)
                 retvalue, colz = max_value(self, depth-1, mockboard, alpha, beta, col)
-                print("min max_val returned ",retvalue, colz)
+                #print("min max_val returned ",retvalue, colz)
                 if (retvalue < value):
                     value = retvalue
                     retcol = colz
@@ -249,9 +261,9 @@ class AIPlayer:
             return value, retcol
 
         #alpha beta algo that uses min-max
-        depth = 4
+        depth = 6
         value, move = max_value(self, depth, board, float("-inf"), float("+inf"), -1)
-        print("returned value and move ",value," ",move)
+        #print("returned value and move ",value," ",move)
         return move
 
     def get_expectimax_move(self, board):
@@ -303,7 +315,7 @@ class AIPlayer:
             return val,col
 
         def value(self, depth, turn, board, col):
-            print("Max at Depth=",depth)  #debug
+            #print("Max at Depth=",depth)  #debug
             mockboard = copy.deepcopy(board)
             if (self.terminal_test(mockboard, self.player_number) or (depth <= 0)):
                 return (self.evaluation_function(mockboard), col)
@@ -313,7 +325,7 @@ class AIPlayer:
             else:
                 return exp_value(self,depth, board, col)
 
-        depth = 3
+        depth = 4
         val, move = value(self, depth, "max", board, -1)
         return move
 
